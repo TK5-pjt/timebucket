@@ -87,7 +87,7 @@
     .birthday-block { display: flex; flex-direction: column; gap: 4px; min-width: 0; flex: 1; }
     .birthday-block label { font-size: .9rem; color: #555; }
     .birthday-row { display: flex; align-items: center; flex-wrap: nowrap; gap: 2px; }
-    .birthday-block .age-hint { font-size: .78rem; color: #aaa; white-space: normal; display: block; }
+    .birthday-block .age-hint { font-size: .78rem; color: #aaa; display: block; width: 100%; }
     .age-display {
       font-size: 1.3rem;
       font-weight: 700;
@@ -512,8 +512,8 @@
         <input type="number" id="bdDay"   class="birthday-input bd-day"   placeholder="1"    min="1"    max="31">
         <span class="age-display" id="ageDisplay">--</span>
         <span>歳</span>
-        <span class="age-hint">（誕生日に自動更新）</span>
       </div>
+      <span class="age-hint">（誕生日に自動で年齢が更新されます）</span>
     </div>
   </div>
 
