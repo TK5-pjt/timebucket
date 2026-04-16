@@ -1,0 +1,1092 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>タイムバケット</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', 'Yu Gothic', sans-serif;
+      background: #f0f4ec;
+      min-height: 100vh;
+      color: #2d3a2d;
+    }
+
+    /* ── Header ── */
+    header {
+      background: linear-gradient(135deg, #2e5d34 0%, #4a8c51 100%);
+      color: #fff;
+      padding: 22px 20px 18px;
+      text-align: center;
+      box-shadow: 0 3px 12px rgba(0,0,0,.25);
+    }
+    header h1 { font-size: 1.9rem; letter-spacing: .04em; }
+    header p  { font-size: .85rem; opacity: .75; margin-top: 4px; }
+
+    /* ── Stats bar ── */
+    .stats-bar {
+      display: flex;
+      justify-content: center;
+      gap: 40px;
+      padding: 14px 20px;
+      background: #fff;
+      border-bottom: 2px solid #dde8d6;
+    }
+    .stat-value { font-size: 1.6rem; font-weight: 700; color: #2e5d34; text-align: center; }
+    .stat-label { font-size: .72rem; color: #888; text-align: center; }
+
+    /* ── Page sections ── */
+    .page { max-width: 820px; margin: 0 auto; padding: 0 16px 60px; }
+
+    /* ── Age setup ── */
+    .age-card {
+      background: #fff;
+      border-radius: 14px;
+      padding: 16px 20px;
+      margin-top: 20px;
+      box-shadow: 0 2px 8px rgba(0,0,0,.07);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    .age-card label { font-size: .9rem; color: #555; }
+    .age-input {
+      width: 72px;
+      padding: 7px 10px;
+      border: 2px solid #c8ddbf;
+      border-radius: 10px;
+      font-size: 1rem;
+      text-align: center;
+      outline: none;
+      transition: border-color .2s;
+    }
+    .age-input:focus { border-color: #4a8c51; }
+    .age-hint { font-size: .78rem; color: #aaa; margin-left: 4px; }
+    .birthday-input {
+      padding: 7px 8px;
+      border: 2px solid #c8ddbf;
+      border-radius: 10px;
+      font-size: .9rem;
+      outline: none;
+      transition: border-color .2s;
+      color: #333;
+      text-align: center;
+    }
+    .birthday-input:focus { border-color: #4a8c51; }
+    .birthday-input.bd-year  { width: 72px; }
+    .birthday-input.bd-month { width: 52px; }
+    .birthday-input.bd-day   { width: 52px; }
+    .birthday-sep { color: #aaa; font-size: 1.1rem; margin: 0 2px; }
+    .age-display {
+      font-size: 1.3rem;
+      font-weight: 700;
+      color: #2e5d34;
+      min-width: 28px;
+      text-align: center;
+    }
+    /* birthday modal extras */
+    .bday-items {
+      text-align: left;
+      margin-top: 14px;
+      max-height: 220px;
+      overflow-y: auto;
+      background: #fff5f5;
+      border: 1.5px solid #f5c6c6;
+      border-radius: 10px;
+      padding: 10px 12px;
+    }
+    .bday-item-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 0;
+      border-bottom: 1px solid #fde8e8;
+      font-size: .85rem;
+      color: #c0392b;
+      font-weight: 500;
+    }
+    .bday-item-row:last-child { border-bottom: none; }
+    .bday-bucket-label {
+      font-size: .72rem;
+      color: #888;
+      margin-top: 10px;
+      margin-bottom: 2px;
+      font-weight: 700;
+    }
+
+    /* ── Section title ── */
+    .sec-title {
+      font-size: 1.05rem;
+      font-weight: 700;
+      color: #2e5d34;
+      margin: 26px 0 12px;
+      display: flex;
+      align-items: center;
+      gap: 7px;
+    }
+
+    /* ── Garden ── */
+    .garden-wrap {
+      border-radius: 18px;
+      overflow: hidden;
+      box-shadow: 0 4px 16px rgba(0,0,0,.1);
+    }
+    .garden-sky {
+      background: linear-gradient(180deg, #b3ddf7 0%, #d6eef9 100%);
+      padding: 14px 18px 0;
+      min-height: 80px;
+      position: relative;
+    }
+    .garden-sky-label {
+      font-size: .75rem;
+      color: #5a90b0;
+      margin-bottom: 8px;
+    }
+    .flowers-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      align-items: flex-end;
+      min-height: 56px;
+      padding-bottom: 6px;
+    }
+    .flower-item {
+      line-height: 1;
+      animation: bloomIn .45s cubic-bezier(.34,1.56,.64,1) both;
+      cursor: default;
+      transition: transform .2s;
+    }
+    .flower-item:hover { transform: scale(1.25) translateY(-3px); }
+    @keyframes bloomIn {
+      from { transform: scale(0) rotate(-120deg); opacity: 0; }
+      to   { transform: scale(1) rotate(0deg);    opacity: 1; }
+    }
+    .garden-ground {
+      background: linear-gradient(180deg, #7bba5c 0%, #5a9e3a 100%);
+      padding: 8px 18px;
+      font-size: .78rem;
+      color: #e8f5e0;
+      text-align: right;
+    }
+    .garden-empty {
+      font-size: .85rem;
+      color: #8ab;
+      padding: 10px 0 14px;
+    }
+
+    /* ── Badges ── */
+    .badges-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+      gap: 10px;
+    }
+    .badge-card {
+      border-radius: 14px;
+      padding: 14px 6px 12px;
+      text-align: center;
+      box-shadow: 0 2px 8px rgba(0,0,0,.07);
+      transition: transform .25s;
+      border: 2px solid transparent;
+      background: #fff;
+    }
+    /* mystery (locked) */
+    .badge-card.mystery {
+      background: linear-gradient(135deg, #3a3a50, #2a2a42);
+      border-color: #666;
+      cursor: default;
+    }
+    /* unlocked normal */
+    .badge-card.unlocked {
+      border-color: #c8a822;
+      background: linear-gradient(135deg, #fffde7, #fff3b0);
+      animation: badgePop .4s cubic-bezier(.34,1.56,.64,1);
+    }
+    /* unlocked premium */
+    .badge-card.premium {
+      border-color: #b8860b;
+      background: linear-gradient(135deg, #fff8e1, #ffe082, #ffca28);
+      box-shadow: 0 0 14px rgba(255,193,7,.55), 0 2px 8px rgba(0,0,0,.1);
+    }
+    .badge-card.unlocked:hover,
+    .badge-card.premium:hover { transform: translateY(-4px) scale(1.04); }
+    @keyframes badgePop {
+      from { transform: scale(0) rotate(-15deg); opacity: 0; }
+      to   { transform: scale(1) rotate(0deg);   opacity: 1; }
+    }
+    .badge-icon { font-size: 2rem; line-height: 1; }
+    .badge-mystery-icon { font-size: 1.8rem; filter: brightness(.8) saturate(.5); }
+    .badge-name { font-size: .7rem; font-weight: 700; margin-top: 6px; color: #333; }
+    .badge-name.mystery-text { color: #aab; font-weight: 400; font-size: .65rem; }
+    .badge-sub  { font-size: .62rem; color: #999; margin-top: 2px; }
+    .badge-sub.mystery-sub { color: #8899aa; font-size: .62rem; }
+    .badge-tier-dot {
+      display: inline-block;
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: #c8a822;
+      margin-bottom: 4px;
+    }
+    .badge-tier-dot.premium { background: linear-gradient(135deg,#ffd700,#ff8c00); width: 8px; height: 8px; }
+
+    /* past toggle button */
+    .past-toggle-btn {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: #fff;
+      border: 2px solid #d4e6c8;
+      border-radius: 10px;
+      padding: 8px 16px;
+      font-size: .85rem;
+      color: #555;
+      cursor: pointer;
+      font-weight: 600;
+      transition: background .2s, border-color .2s;
+      margin-bottom: 14px;
+    }
+    .past-toggle-btn:hover { background: #eef6ea; border-color: #4a8c51; }
+    .toggle-switch {
+      position: relative;
+      width: 38px; height: 22px;
+      background: #ccc;
+      border-radius: 11px;
+      transition: background .25s;
+      flex-shrink: 0;
+    }
+    .toggle-switch.on { background: #4a8c51; }
+    .toggle-switch::after {
+      content: '';
+      position: absolute;
+      top: 3px; left: 3px;
+      width: 16px; height: 16px;
+      background: #fff;
+      border-radius: 50%;
+      transition: transform .25s;
+      box-shadow: 0 1px 3px rgba(0,0,0,.25);
+    }
+    .toggle-switch.on::after { transform: translateX(16px); }
+
+    /* ── Buckets ── */
+    .bucket-card {
+      background: #fff;
+      border-radius: 16px;
+      margin-bottom: 16px;
+      box-shadow: 0 2px 10px rgba(0,0,0,.07);
+      overflow: hidden;
+      border: 2px solid transparent;
+      transition: border-color .3s, box-shadow .3s;
+    }
+    .bucket-card.is-current {
+      border-color: #4a8c51;
+      box-shadow: 0 4px 18px rgba(74,140,81,.2);
+    }
+    .bucket-card.is-past { opacity: .75; }
+    .bucket-card.has-overdue {
+      border-color: #e57373;
+      box-shadow: 0 4px 14px rgba(229,115,115,.2);
+    }
+    .bucket-card.has-overdue .bucket-header { background: #fff5f5; }
+    .bucket-card.has-overdue .bucket-label  { color: #c0392b; }
+
+    .bucket-header {
+      padding: 14px 18px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      cursor: pointer;
+      user-select: none;
+      background: #f8fbf6;
+      transition: background .2s;
+    }
+    .bucket-header:hover { background: #eef6ea; }
+    .bucket-card.is-current .bucket-header { background: #e8f5e2; }
+    .bucket-card.is-past   .bucket-header { background: #f5f5f5; }
+
+    .bucket-label {
+      font-size: 1.15rem;
+      font-weight: 700;
+      color: #2e5d34;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .tag {
+      font-size: .62rem;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 10px;
+      color: #fff;
+    }
+    .tag-current { background: #4a8c51; }
+    .tag-past    { background: #9e9e9e; }
+
+    .bucket-meta {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      color: #888;
+      font-size: .85rem;
+    }
+    .chevron {
+      display: inline-block;
+      transition: transform .25s;
+      font-size: 1rem;
+      color: #aaa;
+    }
+    .is-collapsed .chevron { transform: rotate(-90deg); }
+
+    .bucket-body { padding: 14px 18px 16px; }
+
+    /* Progress bar */
+    .prog-wrap { height: 5px; background: #e0ead8; border-radius: 3px; margin-bottom: 14px; }
+    .prog-fill  { height: 100%; background: linear-gradient(90deg, #4a8c51, #82c984); border-radius: 3px; transition: width .5s ease; }
+
+    /* Items */
+    .item-list { list-style: none; margin-bottom: 14px; }
+    .item-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 9px 0;
+      border-bottom: 1px solid #f0f4ec;
+    }
+    .item-row:last-child { border-bottom: none; }
+    .item-cb {
+      width: 20px; height: 20px;
+      accent-color: #4a8c51;
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+    .item-num { font-size: .78rem; color: #aaa; min-width: 22px; text-align: right; flex-shrink: 0; }
+    .item-num.done { color: #ccc; }
+    .item-text { flex: 1; font-size: .93rem; line-height: 1.4; }
+    .item-text.done { text-decoration: line-through; color: #bbb; }
+    .bucket-card.has-overdue .item-text:not(.done) { color: #c0392b; font-weight: 500; }
+    .bucket-card.has-overdue .item-num:not(.done)  { color: #e57373; }
+    .item-del {
+      background: none; border: none;
+      color: #ccc; cursor: pointer;
+      font-size: 1.1rem; padding: 2px 6px;
+      border-radius: 6px; transition: color .2s, background .2s;
+      line-height: 1;
+    }
+    .item-del:hover { color: #e53935; background: #fdecea; }
+
+    /* Add form */
+    .add-form { display: flex; gap: 8px; }
+    .add-input {
+      flex: 1;
+      padding: 9px 14px;
+      border: 2px solid #d4e6c8;
+      border-radius: 10px;
+      font-size: .9rem;
+      outline: none;
+      transition: border-color .2s;
+    }
+    .add-input:focus { border-color: #4a8c51; }
+    .add-btn {
+      padding: 9px 18px;
+      background: #4a8c51;
+      color: #fff;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+      font-size: .9rem;
+      font-weight: 600;
+      transition: background .2s;
+      white-space: nowrap;
+    }
+    .add-btn:hover { background: #2e5d34; }
+
+    .empty-note { font-size: .83rem; color: #bbb; padding: 8px 0 12px; }
+
+    /* ── Celebration modal ── */
+    .overlay {
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,.45);
+      z-index: 900;
+      display: none;
+      backdrop-filter: blur(2px);
+    }
+    .modal {
+      position: fixed;
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%) scale(.85);
+      background: #fff;
+      border-radius: 22px;
+      padding: 32px 36px 28px;
+      text-align: center;
+      z-index: 901;
+      display: none;
+      min-width: 280px;
+      max-width: 360px;
+      box-shadow: 0 12px 40px rgba(0,0,0,.25);
+      animation: popIn .35s cubic-bezier(.34,1.56,.64,1) forwards;
+    }
+    @keyframes popIn {
+      to { transform: translate(-50%, -50%) scale(1); }
+    }
+    .modal-icon { font-size: 4rem; margin-bottom: 10px; }
+    .modal-title { font-size: 1.3rem; font-weight: 700; margin-bottom: 8px; }
+    .modal-msg { font-size: .88rem; color: #666; line-height: 1.6; white-space: pre-line; }
+    .modal-btn {
+      margin-top: 20px;
+      padding: 10px 32px;
+      background: #4a8c51;
+      color: #fff;
+      border: none;
+      border-radius: 12px;
+      font-size: .95rem;
+      cursor: pointer;
+      transition: background .2s;
+    }
+    .modal-btn:hover { background: #2e5d34; }
+
+    /* confetti */
+    .confetti-piece {
+      position: fixed;
+      width: 8px; height: 8px;
+      border-radius: 2px;
+      pointer-events: none;
+      z-index: 902;
+      animation: fall linear forwards;
+    }
+    @keyframes fall {
+      0%   { transform: translateY(-20px) rotate(0deg); opacity: 1; }
+      100% { transform: translateY(100vh)  rotate(720deg); opacity: 0; }
+    }
+
+    /* responsive */
+    @media (max-width: 540px) {
+      header h1 { font-size: 1.5rem; }
+      .stats-bar { gap: 20px; }
+      .badges-grid { grid-template-columns: repeat(3, 1fr); }
+      .modal { padding: 24px 20px 20px; min-width: 260px; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>🌱 タイムバケット</h1>
+</header>
+
+<div class="stats-bar">
+  <div>
+    <div class="stat-value" id="statTotal">0</div>
+    <div class="stat-label">やりたいこと</div>
+  </div>
+  <div>
+    <div class="stat-value" id="statDone">0</div>
+    <div class="stat-label">達成済み</div>
+  </div>
+  <div>
+    <div class="stat-value" id="statRate">0%</div>
+    <div class="stat-label">達成率</div>
+  </div>
+</div>
+
+<div class="page">
+
+  <!-- Age input -->
+  <div class="age-card">
+    <span>🎂</span>
+    <label>生年月日：</label>
+    <input type="number" id="bdYear"  class="birthday-input bd-year"  placeholder="1980" min="1900" max="2100">
+    <span class="birthday-sep">/</span>
+    <input type="number" id="bdMonth" class="birthday-input bd-month" placeholder="1"    min="1"    max="12">
+    <span class="birthday-sep">/</span>
+    <input type="number" id="bdDay"   class="birthday-input bd-day"   placeholder="1"    min="1"    max="31">
+    <span class="age-display" id="ageDisplay">--</span>
+    <span>歳</span>
+    <span class="age-hint">（誕生日に自動で年齢が更新されます）</span>
+  </div>
+
+  <!-- Garden -->
+  <div class="sec-title">🌸 達成の庭</div>
+  <div class="garden-wrap">
+    <div class="garden-sky">
+      <div class="garden-sky-label" id="gardenLabel">達成数：0個</div>
+      <div class="flowers-row" id="flowersRow">
+        <div class="garden-empty">やりたいことを達成すると、ここに花が咲きます 🌱</div>
+      </div>
+    </div>
+    <div class="garden-ground" id="gardenGround">大地に根を張り、空へと咲く</div>
+  </div>
+
+  <!-- Badges -->
+  <div class="sec-title">🏅 バッジコレクション</div>
+  <button class="past-toggle-btn" id="badgeToggleBtn" onclick="toggleBadges()">
+    <span class="toggle-switch" id="badgeToggleSwitch"></span>
+    <span id="badgeToggleLabel">バッジを表示</span>
+  </button>
+  <div class="badges-grid" id="badgesGrid" style="display:none"></div>
+
+  <!-- Buckets -->
+  <div class="sec-title">🧺 タイムバケット</div>
+  <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;">
+    <button class="past-toggle-btn" id="pastToggleBtn" onclick="togglePast()" style="margin-bottom:0;">
+      <span class="toggle-switch" id="pastToggleSwitch"></span>
+      <span id="pastToggleLabel">過去のバケツを表示</span>
+    </button>
+    <button class="past-toggle-btn" id="overdueToggleBtn" onclick="toggleOverdue()" style="margin-bottom:0;color:#c0392b;border-color:#f5c6c6;">
+      <span class="toggle-switch" id="overdueToggleSwitch"></span>
+      <span id="overdueToggleLabel">未完了のみ表示</span>
+    </button>
+  </div>
+  <div id="bucketsContainer"></div>
+
+</div>
+
+<!-- Modal -->
+<div class="overlay" id="overlay" onclick="closeModal()"></div>
+<div class="modal" id="modal">
+  <div class="modal-icon" id="modalIcon">🌸</div>
+  <div class="modal-title" id="modalTitle">達成おめでとう！</div>
+  <div class="modal-msg" id="modalMsg"></div>
+  <button class="modal-btn" onclick="closeModal()">ありがとう！</button>
+</div>
+
+<script>
+// ── Constants ──────────────────────────────────────────────
+const BUCKETS = [
+  { id:'b10',  label:'〜10歳',  maxAge:10  },
+  { id:'b15',  label:'〜15歳',  maxAge:15  },
+  { id:'b20',  label:'〜20歳',  maxAge:20  },
+  { id:'b25',  label:'〜25歳',  maxAge:25  },
+  { id:'b30',  label:'〜30歳',  maxAge:30  },
+  { id:'b35',  label:'〜35歳',  maxAge:35  },
+  { id:'b40',  label:'〜40歳',  maxAge:40  },
+  { id:'b45',  label:'〜45歳',  maxAge:45  },
+  { id:'b50',  label:'〜50歳',  maxAge:50  },
+  { id:'b55',  label:'〜55歳',  maxAge:55  },
+  { id:'b60',  label:'〜60歳',  maxAge:60  },
+  { id:'b65',  label:'〜65歳',  maxAge:65  },
+  { id:'b70',  label:'〜70歳',  maxAge:70  },
+  { id:'b75',  label:'〜75歳',  maxAge:75  },
+  { id:'b80',  label:'〜80歳',  maxAge:80  },
+  { id:'b85',  label:'〜85歳',  maxAge:85  },
+  { id:'b90',  label:'〜90歳',  maxAge:90  },
+  { id:'b95',  label:'〜95歳',  maxAge:95  },
+  { id:'b100', label:'〜100歳', maxAge:100 },
+];
+
+// 5個ごと・10個ごとはプレミアム。何が出るかはお楽しみ！
+const BADGES = [
+  { id:'n5',  need:5,   icon:'🐣', name:'ひよこ',            premium:false },
+  { id:'p10', need:10,  icon:'🏆', name:'トロフィー×1',      premium:true  },
+  { id:'n15', need:15,  icon:'🧸', name:'くまのぬいぐるみ',  premium:false },
+  { id:'p20', need:20,  icon:'💎', name:'ダイヤモンド',      premium:true  },
+  { id:'n25', need:25,  icon:'🌈', name:'にじ',              premium:false },
+  { id:'p30', need:30,  icon:'👑', name:'おうかん',          premium:true  },
+  { id:'n35', need:35,  icon:'🦋', name:'ちょうちょ',        premium:false },
+  { id:'p40', need:40,  icon:'🚀', name:'ロケット',          premium:true  },
+  { id:'n45', need:45,  icon:'🐉', name:'ドラゴン',          premium:false },
+  { id:'p50', need:50,  icon:'🏆🏆', name:'トロフィー×2',    premium:true  },
+  { id:'n55', need:55,  icon:'🦄', name:'ユニコーン',        premium:false },
+  { id:'p60', need:60,  icon:'🪐', name:'わく星',            premium:true  },
+  { id:'n65', need:65,  icon:'🎠', name:'メリーゴーランド',  premium:false },
+  { id:'p70', need:70,  icon:'🔮', name:'魔法の球',           premium:true  },
+  { id:'n75', need:75,  icon:'🪆', name:'マトリョーシカ',    premium:false },
+  { id:'p80', need:80,  icon:'🌠', name:'流れ星',            premium:true  },
+  { id:'n85', need:85,  icon:'🐬', name:'いるか',            premium:false },
+  { id:'p90', need:90,  icon:'🎆', name:'花火',              premium:true  },
+  { id:'n95', need:95,  icon:'🏆🏆🏆', name:'トロフィー×3',  premium:true  },
+  { id:'p100',need:100, icon:'🎖️', name:'伝説の勲章',        premium:true  },
+];
+
+const FLOWERS = ['🌸','🌺','🌹','🌷','🌼','🌻','🪷','🪻','💐','🌝','🌞','✨'];
+
+const MESSAGES = [
+  '一歩一歩、確実に夢に近づいています。',
+  '花が一輪咲きました！あなたの達成を称えて。',
+  '人生の彩りが増えましたね。おめでとう！',
+  'やり遂げた充実感は、何物にも代えられません。',
+  '次の挑戦も楽しみですね！',
+  'その一歩が、やがて大きな庭になります。',
+  '素晴らしい！時間は有限だから、こういう積み重ねが尊い。',
+];
+
+// ── State (in-memory primary, localStorage backup) ─────────
+let STATE = { items: {}, collapsed: {}, age: null, unlockedBadges: [] };
+
+(function initState() {
+  try {
+    const raw = localStorage.getItem('tb_v1');
+    if (raw) STATE = Object.assign(STATE, JSON.parse(raw));
+  } catch(e) {}
+})();
+
+function save() {
+  try { localStorage.setItem('tb_v1', JSON.stringify(STATE)); } catch(e) {}
+}
+
+function getState() { return STATE; }
+
+// ── Helpers ────────────────────────────────────────────────
+function calcAge(birthday) {
+  if (!birthday) return null;
+  const today = new Date();
+  const bd    = new Date(birthday);
+  let age = today.getFullYear() - bd.getFullYear();
+  const notYet = today.getMonth() < bd.getMonth() ||
+    (today.getMonth() === bd.getMonth() && today.getDate() < bd.getDate());
+  if (notYet) age--;
+  return age >= 0 ? age : null;
+}
+
+function isBirthday(birthday) {
+  if (!birthday) return false;
+  const today = new Date();
+  const bd    = new Date(birthday);
+  return today.getMonth() === bd.getMonth() && today.getDate() === bd.getDate();
+}
+
+function todayStr() {
+  return new Date().toISOString().slice(0, 10);
+}
+
+function currentAge() {
+  if (STATE.birthday) return calcAge(STATE.birthday);
+  return STATE.age || null; // 旧データ互換
+}
+
+function bucketStatus(bucket) {
+  const age = currentAge();
+  if (!age) return 'future';
+  if (bucket.maxAge <= age) return 'past';
+  const cur = BUCKETS.find(b => b.maxAge > age);
+  return (cur && cur.id === bucket.id) ? 'current' : 'future';
+}
+
+function countAll(state) {
+  let total = 0, done = 0;
+  for (const bid in state.items) {
+    for (const it of state.items[bid]) { total++; if (it.done) done++; }
+  }
+  return { total, done };
+}
+
+function esc(t) {
+  const d = document.createElement('div');
+  d.appendChild(document.createTextNode(t));
+  return d.innerHTML;
+}
+
+// ── Render ─────────────────────────────────────────────────
+function renderAll() {
+  const state = getState();
+  const { total, done } = countAll(state);
+
+  // Stats
+  document.getElementById('statTotal').textContent = total;
+  document.getElementById('statDone').textContent  = done;
+  document.getElementById('statRate').textContent  = total ? Math.round(done/total*100)+'%' : '0%';
+
+  renderGarden(done);
+  renderBadges(done);
+  renderBuckets(state);
+}
+
+function renderGarden(done) {
+  document.getElementById('gardenLabel').textContent = `達成数：${done}個`;
+  const row = document.getElementById('flowersRow');
+  if (done === 0) {
+    row.innerHTML = '<div class="garden-empty">やりたいことを達成すると、ここに花が咲きます 🌱</div>';
+    return;
+  }
+  const show = Math.min(done, 100);
+  // サイズのバリエーション（小・中・大をランダムに）
+  const sizes = ['1.1rem','1.4rem','1.7rem','2.0rem','2.3rem'];
+  // シードを固定して毎回同じランダム配置にする
+  function seededRand(seed) { return ((Math.sin(seed) * 9301 + 49297) % 233280) / 233280; }
+  let html = '';
+  for (let i = 0; i < show; i++) {
+    const f    = FLOWERS[i % FLOWERS.length];
+    const size = sizes[Math.floor(seededRand(i * 7 + 3) * sizes.length)];
+    html += `<span class="flower-item" style="font-size:${size};animation-delay:${(i*0.03).toFixed(2)}s" title="${i+1}個目の達成">${f}</span>`;
+  }
+  if (done > 100) html += `<span style="font-size:.85rem;background:rgba(0,0,0,.22);color:#fff;padding:4px 10px;border-radius:10px;align-self:center">+${done-100}</span>`;
+  row.innerHTML = html;
+  document.getElementById('gardenGround').textContent =
+    done >= 50 ? '百花繚乱の庭。あなたの人生、最高です！' :
+    done >= 20 ? '花盛りの庭。着実に夢を叶えていますね。' :
+    done >= 10 ? '庭が賑やかになってきました。' :
+    done >= 5  ? '小さな庭が育ちつつあります。' :
+                 '大地に根を張り、空へと咲く';
+}
+
+function renderBadges(done) {
+  const unlocked = new Set(STATE.unlockedBadges || []);
+  document.getElementById('badgesGrid').innerHTML = BADGES.map(b => {
+    const on = unlocked.has(b.id);
+    if (on) {
+      const cls = b.premium ? 'premium' : 'unlocked';
+      return `<div class="badge-card ${cls}">
+        <div class="badge-tier-dot ${b.premium ? 'premium' : ''}"></div>
+        <div class="badge-icon">${b.icon}</div>
+        <div class="badge-name">${b.name}</div>
+        <div class="badge-sub">${b.need}個達成</div>
+      </div>`;
+    } else {
+      const remaining = b.need - done;
+      return `<div class="badge-card mystery">
+        <div class="badge-mystery-icon">🎁</div>
+        <div class="badge-name mystery-text">シークレット</div>
+        <div class="badge-sub mystery-sub">あと${remaining}個</div>
+      </div>`;
+    }
+  }).join('');
+}
+
+function renderBuckets(state) {
+  // 過去バケツの表示切替
+  const showPast = STATE.showPast || false;
+  const btn = document.getElementById('pastToggleBtn');
+  if (btn) {
+    document.getElementById('pastToggleSwitch').className  = 'toggle-switch' + (showPast ? ' on' : '');
+    document.getElementById('pastToggleLabel').textContent = showPast ? '過去のバケツを隠す' : '過去のバケツを表示';
+  }
+
+  const showOverdue = STATE.showOverdue || false;
+  const odBtn = document.getElementById('overdueToggleSwitch');
+  if (odBtn) {
+    odBtn.className = 'toggle-switch' + (showOverdue ? ' on' : '');
+    document.getElementById('overdueToggleLabel').textContent = showOverdue ? '未完了のみ表示中' : '未完了のみ表示';
+    document.getElementById('overdueToggleBtn').style.borderColor = showOverdue ? '#e57373' : '#f5c6c6';
+  }
+
+  const visible = BUCKETS.filter(b => {
+    const st    = bucketStatus(b);
+    const items = state.items[b.id] || [];
+    if (showOverdue) return items.some(it => !it.done); // 未完了ありのバケツのみ
+    return showPast || st !== 'past';
+  });
+  document.getElementById('bucketsContainer').innerHTML = visible.map(bucket => {
+    const status  = bucketStatus(bucket);
+    const items   = state.items[bucket.id] || [];
+    const done    = items.filter(i => i.done).length;
+    const total   = items.length;
+    const pct     = total ? done/total*100 : 0;
+    const isCol   = state.collapsed[bucket.id];
+
+    const tagHtml =
+      status === 'current' ? '<span class="tag tag-current">現在</span>' :
+      status === 'past'    ? '<span class="tag tag-past">過去</span>'    : '';
+
+    const displayItems = showOverdue
+      ? items.map((it, idx) => ({ it, idx })).filter(({ it }) => !it.done)
+      : items.map((it, idx) => ({ it, idx }));
+
+    const itemsHtml = displayItems.length === 0
+      ? '<li><div class="empty-note">まだ何もありません。追加してみましょう！</div></li>'
+      : displayItems.map(({ it, idx }, dispIdx) => `
+          <li class="item-row">
+            <input type="checkbox" class="item-cb" ${it.done ? 'checked' : ''}
+              onchange="toggleItem('${bucket.id}',${idx})">
+            <span class="item-num ${it.done ? 'done' : ''}">${dispIdx + 1}.</span>
+            <span class="item-text ${it.done ? 'done' : ''}">${esc(it.text)}</span>
+            <button class="item-del" onclick="deleteItem('${bucket.id}',${idx})" title="削除">×</button>
+          </li>`).join('');
+
+    const hasOverdue = status === 'past' && items.some(it => !it.done);
+
+    return `
+      <div class="bucket-card ${status==='current'?'is-current':''} ${status==='past'?'is-past':''} ${hasOverdue?'has-overdue':''} ${isCol?'is-collapsed':''}" id="bc-${bucket.id}">
+        <div class="bucket-header" onclick="toggleCollapse('${bucket.id}')">
+          <div class="bucket-label">
+            ${bucket.label}
+            ${tagHtml}
+          </div>
+          <div class="bucket-meta">
+            <span>${done}/${total}</span>
+            <span class="chevron">▼</span>
+          </div>
+        </div>
+        ${isCol ? '' : `
+        <div class="bucket-body">
+          ${total > 0 ? `<div class="prog-wrap"><div class="prog-fill" style="width:${pct}%"></div></div>` : ''}
+          <ul class="item-list">${itemsHtml}</ul>
+          <div class="add-form">
+            <input type="text" class="add-input" id="in-${bucket.id}"
+              placeholder="やりたいことを入力…"
+              onkeydown="if(event.key==='Enter'&&!event.isComposing)addItem('${bucket.id}')">
+            <button class="add-btn" onclick="addItem('${bucket.id}')">追加</button>
+          </div>
+        </div>`}
+      </div>`;
+  }).join('');
+}
+
+// ── Actions ────────────────────────────────────────────────
+function addItem(bid) {
+  const inp = document.getElementById('in-' + bid);
+  if (!inp) return;
+  const text = inp.value.trim();
+  if (!text) return;
+  if (!STATE.items[bid]) STATE.items[bid] = [];
+  STATE.items[bid].push({ text, done: false });
+  save();
+  inp.value = '';
+  renderAll();
+  // 追加後カーソルを入力欄に戻す
+  const newInp = document.getElementById('in-' + bid);
+  if (newInp) newInp.focus();
+}
+
+function deleteItem(bid, idx) {
+  STATE.items[bid].splice(idx, 1);
+  save();
+  renderAll();
+}
+
+function toggleItem(bid, idx) {
+  const item = STATE.items[bid][idx];
+  item.done  = !item.done;
+  save();
+
+  if (item.done) {
+    const { done } = countAll(STATE);
+    const newBadge = checkBadge(done);
+    showCelebration(newBadge);
+  }
+  renderAll();
+}
+
+function toggleBadges() {
+  STATE.showBadges = !STATE.showBadges;
+  save();
+  const show = STATE.showBadges;
+  document.getElementById('badgesGrid').style.display   = show ? 'grid' : 'none';
+  document.getElementById('badgeToggleSwitch').className = 'toggle-switch' + (show ? ' on' : '');
+  document.getElementById('badgeToggleLabel').textContent = show ? 'バッジを隠す' : 'バッジを表示';
+}
+
+function demoBirthday() {
+  // 誕生日チェックをスキップして表示ロジックを直接呼ぶ
+  showBirthdayModal(currentAge());
+}
+
+function togglePast() {
+  STATE.showPast = !STATE.showPast;
+  save();
+  renderBuckets(STATE);
+}
+
+function toggleOverdue() {
+  STATE.showOverdue = !STATE.showOverdue;
+  save();
+  renderBuckets(STATE);
+}
+
+function toggleCollapse(bid) {
+  STATE.collapsed[bid] = !STATE.collapsed[bid];
+  save();
+  renderBuckets(STATE);
+}
+
+// ── Badge logic ────────────────────────────────────────────
+function checkBadge(done) {
+  if (!STATE.unlockedBadges) STATE.unlockedBadges = [];
+  const prev = new Set(STATE.unlockedBadges);
+  let newBadge = null;
+  for (const b of BADGES) {
+    if (done >= b.need && !prev.has(b.id)) {
+      STATE.unlockedBadges.push(b.id);
+      newBadge = b;
+    }
+  }
+  save();
+  return newBadge;
+}
+
+// ── Sound ──────────────────────────────────────────────────
+function playSuccessSound(type) {
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    // normal: E G C (3音)  badge: C E G C (4音)  premium: C E G C E C ファンファーレ
+    const configs = {
+      normal:  { notes:[659.25, 783.99, 1046.50],                          step:0.13, vol:0.25, dur:0.8 },
+      badge:   { notes:[523.25, 659.25, 783.99, 1046.50],                  step:0.13, vol:0.28, dur:0.9 },
+      premium: { notes:[523.25, 659.25, 783.99, 1046.50, 1318.51, 2093.0], step:0.11, vol:0.30, dur:1.1 },
+    };
+    const { notes, step, vol, dur } = configs[type] || configs.normal;
+    notes.forEach((freq, i) => {
+      const osc  = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.type = 'sine';
+      osc.frequency.value = freq;
+      const t = ctx.currentTime + i * step;
+      gain.gain.setValueAtTime(0, t);
+      gain.gain.linearRampToValueAtTime(vol, t + 0.04);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + dur);
+      osc.start(t);
+      osc.stop(t + dur);
+    });
+  } catch(e) {}
+}
+
+// ── Celebration ────────────────────────────────────────────
+function showCelebration(badge) {
+  if (badge) {
+    document.getElementById('modalIcon').textContent  = badge.icon;
+    document.getElementById('modalTitle').textContent = badge.premium ? `✨ プレミアムバッジ獲得！` : `🎁 バッジ獲得！`;
+    document.getElementById('modalMsg').textContent   = `「${badge.name}」が解除されました！\n${badge.need}個達成のお祝いです🎉\n\n${MESSAGES[Math.floor(Math.random()*MESSAGES.length)]}`;
+  } else {
+    document.getElementById('modalIcon').textContent  = FLOWERS[Math.floor(Math.random()*FLOWERS.length)];
+    document.getElementById('modalTitle').textContent = '達成おめでとう！';
+    document.getElementById('modalMsg').textContent   = MESSAGES[Math.floor(Math.random()*MESSAGES.length)];
+  }
+  document.getElementById('overlay').style.display = 'block';
+  document.getElementById('modal').style.display   = 'block';
+  spawnConfetti();
+  playSuccessSound(badge ? (badge.premium ? 'premium' : 'badge') : 'normal');
+}
+
+function closeModal() {
+  document.getElementById('overlay').style.display = 'none';
+  document.getElementById('modal').style.display   = 'none';
+  const extra = document.getElementById('bdayExtra');
+  if (extra) extra.remove();
+}
+
+function spawnConfetti() {
+  const colors = ['#f5c518','#4a8c51','#e57373','#64b5f6','#ba68c8','#ff8a65'];
+  for (let i = 0; i < 55; i++) {
+    const el = document.createElement('div');
+    el.className = 'confetti-piece';
+    el.style.cssText = [
+      `left:${Math.random()*100}vw`,
+      `top:${-10 - Math.random()*30}px`,
+      `background:${colors[Math.floor(Math.random()*colors.length)]}`,
+      `animation-duration:${.9 + Math.random()*1.4}s`,
+      `animation-delay:${Math.random()*.4}s`,
+      `transform:rotate(${Math.random()*360}deg)`,
+    ].join(';');
+    document.body.appendChild(el);
+    el.addEventListener('animationend', () => el.remove());
+  }
+}
+
+// ── Birthday modal ─────────────────────────────────────────
+function showBirthdayModal(age) {
+  // 過去バケツの未完了アイテムを集める
+  const overdueByBucket = [];
+  for (const bucket of BUCKETS) {
+    if (!age || bucket.maxAge > age) continue;
+    const items = (STATE.items[bucket.id] || []).filter(it => !it.done);
+    if (items.length > 0) overdueByBucket.push({ bucket, items });
+  }
+
+  document.getElementById('modalIcon').textContent  = '🎂';
+  document.getElementById('modalTitle').textContent = age ? `${age}歳のお誕生日おめでとう！` : '🎂 誕生日デモ';
+  document.getElementById('modalMsg').textContent   = 'また一つ歳を重ねましたね。\n素晴らしい一年になりますように！';
+
+  const existingExtra = document.getElementById('bdayExtra');
+  if (existingExtra) existingExtra.remove();
+
+  const extra = document.createElement('div');
+  extra.id = 'bdayExtra';
+  if (overdueByBucket.length > 0) {
+    extra.innerHTML = `<div style="margin-top:12px;font-size:.82rem;color:#c0392b;font-weight:700;">⚠️ 過去のバケツに未完了があります</div>
+      <div class="bday-items">${overdueByBucket.map(({ bucket, items }) =>
+        `<div class="bday-bucket-label">${bucket.label}</div>` +
+        items.map(it => `<div class="bday-item-row">📌 ${esc(it.text)}</div>`).join('')
+      ).join('')}</div>
+      <div style="font-size:.78rem;color:#aaa;margin-top:8px;">完了したらチェックを入れましょう！</div>`;
+  } else {
+    extra.innerHTML = `<div style="margin-top:12px;font-size:.85rem;color:#4a8c51;">✅ 過去のバケツはすべて完了しています！</div>`;
+  }
+  document.getElementById('modal').appendChild(extra);
+
+  document.getElementById('overlay').style.display = 'block';
+  document.getElementById('modal').style.display   = 'block';
+  spawnConfetti();
+  playSuccessSound('premium');
+}
+
+function checkBirthdayUpdate() {
+  if (!STATE.birthday) return;
+  if (!isBirthday(STATE.birthday)) return;
+  const today = todayStr();
+  if (STATE.lastBirthdayCheck === today) return; // 今日すでに表示済み
+
+  STATE.lastBirthdayCheck = today;
+  save();
+  showBirthdayModal(currentAge());
+}
+
+// ── Init ───────────────────────────────────────────────────
+function onBirthdayInput() {
+  const y = document.getElementById('bdYear').value.trim();
+  const m = document.getElementById('bdMonth').value.trim();
+  const d = document.getElementById('bdDay').value.trim();
+  if (y.length === 4 && m && d) {
+    const str = `${y}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    STATE.birthday = str;
+  } else {
+    STATE.birthday = null;
+  }
+  const age = calcAge(STATE.birthday);
+  document.getElementById('ageDisplay').textContent = age !== null ? age : '--';
+  save();
+  renderAll();
+}
+
+function setupBirthdayInputs() {
+  const year  = document.getElementById('bdYear');
+  const month = document.getElementById('bdMonth');
+  const day   = document.getElementById('bdDay');
+
+  // 年：4桁入力で自動的に月へ
+  year.addEventListener('input', function() {
+    if (this.value.length >= 4) month.focus();
+    onBirthdayInput();
+  });
+  year.addEventListener('keydown', function(e) {
+    if (e.key === 'Enter' && !e.isComposing) { e.preventDefault(); month.focus(); }
+  });
+
+  // 月：2桁 or Enter で日へ
+  month.addEventListener('input', function() {
+    if (this.value.length >= 2) day.focus();
+    onBirthdayInput();
+  });
+  month.addEventListener('keydown', function(e) {
+    if (e.key === 'Enter' && !e.isComposing) { e.preventDefault(); day.focus(); }
+  });
+
+  // 日：変更時に更新
+  day.addEventListener('input', onBirthdayInput);
+  day.addEventListener('keydown', function(e) {
+    if (e.key === 'Enter' && !e.isComposing) { e.preventDefault(); onBirthdayInput(); this.blur(); }
+  });
+}
+
+window.addEventListener('DOMContentLoaded', () => {
+  setupBirthdayInputs();
+  if (STATE.birthday) {
+    const parts = STATE.birthday.split('-');
+    document.getElementById('bdYear').value  = parts[0];
+    document.getElementById('bdMonth').value = parseInt(parts[1]);
+    document.getElementById('bdDay').value   = parseInt(parts[2]);
+    const age = calcAge(STATE.birthday);
+    document.getElementById('ageDisplay').textContent = age !== null ? age : '--';
+  }
+  // バッジ表示状態を復元
+  const showBadges = STATE.showBadges || false;
+  document.getElementById('badgesGrid').style.display    = showBadges ? 'grid' : 'none';
+  document.getElementById('badgeToggleSwitch').className = 'toggle-switch' + (showBadges ? ' on' : '');
+  document.getElementById('badgeToggleLabel').textContent = showBadges ? 'バッジを隠す' : 'バッジを表示';
+
+  renderAll();
+  checkBirthdayUpdate();
+});
+</script>
+</body>
+</html>
