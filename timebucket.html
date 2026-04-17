@@ -1236,10 +1236,15 @@ function toggleTodoItem(idx) {
   const wasDone = item.done;
   item.done     = !item.done;
   saveTodo();
-  renderAll(); // 先にDOMを更新
+
+  // バッジ解除を先に行ってからrenderAll → グリッドに即反映
+  let newBadge = null;
   if (!wasDone && item.done) {
-    const done     = TODO_STATE.items.filter(i => i.done).length;
-    const newBadge = checkTodoBadge(done);
+    const done = TODO_STATE.items.filter(i => i.done).length;
+    newBadge = checkTodoBadge(done);
+  }
+  renderAll();
+  if (!wasDone && item.done) {
     showCelebration(newBadge, true);
   }
 }
