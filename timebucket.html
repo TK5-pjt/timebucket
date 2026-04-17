@@ -508,6 +508,41 @@
       color: #2e5d34;
     }
 
+    /* ══ ToDo Blue Theme ══════════════════════════════════════ */
+    body.mode-todo {
+      background: #eaf0fb;
+    }
+    body.mode-todo header {
+      background: linear-gradient(135deg, #1a3c7a 0%, #2a6dd9 100%);
+    }
+    body.mode-todo .stats-bar {
+      border-bottom-color: #b8d0f5;
+    }
+    body.mode-todo .mode-selector {
+      background: #eaf0fb;
+    }
+    body.mode-todo .mode-option.active {
+      border-color: #2a6dd9;
+      background: #ddeafc;
+      color: #1a3c7a;
+    }
+    body.mode-todo .sec-title { color: #1a3c7a; }
+    body.mode-todo .age-card  { border-color: #b8d0f5; }
+    body.mode-todo .add-btn   { background: #2a6dd9; }
+    body.mode-todo .add-btn:hover { background: #1a3c7a; }
+    body.mode-todo .add-input:focus { border-color: #2a6dd9; }
+    body.mode-todo .item-cb   { accent-color: #2a6dd9; }
+    body.mode-todo .past-toggle-btn:hover {
+      background: #ddeafc;
+      border-color: #2a6dd9;
+    }
+    body.mode-todo .toggle-switch.on { background: #2a6dd9; }
+    body.mode-todo .modal-btn { background: #2a6dd9; }
+    body.mode-todo .modal-btn:hover { background: #1a3c7a; }
+    body.mode-todo .item-row  { border-bottom-color: #e8f0fc; }
+    body.mode-todo .birthday-input:focus { border-color: #2a6dd9; }
+    body.mode-todo .todo-deadline:focus  { border-color: #2a6dd9; }
+
     /* ── Night Sky Garden ── */
     .garden-wrap.night .garden-sky {
       background: linear-gradient(180deg, #0d1b2a 0%, #162c44 100%);
@@ -605,6 +640,20 @@
   </button>
   <div class="badges-grid" id="badgesGrid" style="display:none"></div>
 
+  <!-- ToDo トグル（バッジ下・やることリスト上、ToDoモードのみ表示） -->
+  <div id="todoToggles" style="display:none;margin-top:14px;">
+    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+      <button class="past-toggle-btn" id="undoneToggleBtn" onclick="toggleUndoneTodo()" style="margin-bottom:0;">
+        <span class="toggle-switch" id="undoneToggleSwitch"></span>
+        <span id="undoneToggleLabel">未完了のみ表示</span>
+      </button>
+      <button class="past-toggle-btn" id="sortToggleBtn" onclick="toggleSortByDeadline()" style="margin-bottom:0;">
+        <span class="toggle-switch" id="sortToggleSwitch"></span>
+        <span id="sortToggleLabel">期限順に並べる</span>
+      </button>
+    </div>
+  </div>
+
   <!-- Buckets Section (タイムバケットモードのみ) -->
   <div id="bucketsSection">
     <div class="sec-title">🧺 タイムバケット</div>
@@ -624,21 +673,11 @@
   <!-- ToDo Section (ToDoリストモードのみ) -->
   <div id="todoSection" style="display:none">
     <div class="sec-title">✅ やることリスト</div>
-    <div class="add-form" style="margin-bottom:10px;">
+    <div class="add-form" style="margin-bottom:14px;">
       <input type="text" class="add-input" id="todoInput"
         placeholder="やることを入力…"
         onkeydown="if(event.key==='Enter'&&!event.isComposing)addTodoItem()">
       <button class="add-btn" onclick="addTodoItem()">追加</button>
-    </div>
-    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;">
-      <button class="past-toggle-btn" id="undoneToggleBtn" onclick="toggleUndoneTodo()" style="margin-bottom:0;">
-        <span class="toggle-switch" id="undoneToggleSwitch"></span>
-        <span id="undoneToggleLabel">未完了のみ表示</span>
-      </button>
-      <button class="past-toggle-btn" id="sortToggleBtn" onclick="toggleSortByDeadline()" style="margin-bottom:0;">
-        <span class="toggle-switch" id="sortToggleSwitch"></span>
-        <span id="sortToggleLabel">期限順に並べる</span>
-      </button>
     </div>
     <ul class="item-list" id="todoList"></ul>
   </div>
@@ -1103,19 +1142,21 @@ function checkTodoBadge(done) {
 function playSuccessSound(type) {
   try {
     const ctx = new (window.AudioContext || window.webkitAudioContext)();
-    // normal: E G C (3音)  badge: C E G C (4音)  premium: C E G C E C ファンファーレ
+    // normal: E G C  sine 3音
+    // badge : A C# E A (Aメジャー) triangle ベル感
+    // premium: C E G C E G C triangle 2オクターブファンファーレ
     const configs = {
-      normal:  { notes:[659.25, 783.99, 1046.50],                          step:0.13, vol:0.25, dur:0.8 },
-      badge:   { notes:[523.25, 659.25, 783.99, 1046.50],                  step:0.13, vol:0.28, dur:0.9 },
-      premium: { notes:[523.25, 659.25, 783.99, 1046.50, 1318.51, 2093.0], step:0.11, vol:0.30, dur:1.1 },
+      normal:  { notes:[659.25, 783.99, 1046.50],                                    step:0.13, vol:0.25, dur:0.8,  wave:'sine'     },
+      badge:   { notes:[880.00, 1108.73, 1318.51, 1760.00],                          step:0.11, vol:0.20, dur:1.3,  wave:'triangle' },
+      premium: { notes:[523.25, 659.25, 783.99, 1046.50, 1318.51, 1567.98, 2093.0], step:0.09, vol:0.21, dur:1.6,  wave:'triangle' },
     };
-    const { notes, step, vol, dur } = configs[type] || configs.normal;
+    const { notes, step, vol, dur, wave } = configs[type] || configs.normal;
     notes.forEach((freq, i) => {
       const osc  = ctx.createOscillator();
       const gain = ctx.createGain();
       osc.connect(gain);
       gain.connect(ctx.destination);
-      osc.type = 'sine';
+      osc.type = wave || 'sine';
       osc.frequency.value = freq;
       const t = ctx.currentTime + i * step;
       gain.gain.setValueAtTime(0, t);
@@ -1309,9 +1350,12 @@ function applyMode() {
   // Stats label
   document.getElementById('statLabelTotal').textContent = isTodo ? 'やること' : 'やりたいこと';
   // セクション表示切替
-  document.getElementById('ageCard').style.display       = isTodo ? 'none' : '';
+  document.getElementById('ageCard').style.display        = isTodo ? 'none' : '';
   document.getElementById('bucketsSection').style.display = isTodo ? 'none' : '';
-  document.getElementById('todoSection').style.display   = isTodo ? '' : 'none';
+  document.getElementById('todoSection').style.display    = isTodo ? ''     : 'none';
+  document.getElementById('todoToggles').style.display    = isTodo ? ''     : 'none';
+  // 青テーマ切り替え
+  document.body.classList.toggle('mode-todo', isTodo);
   // ガーデン
   document.getElementById('gardenWrap').className = 'garden-wrap' + (isTodo ? ' night' : '');
   document.getElementById('gardenTitle').textContent = isTodo ? '🌙 達成の夜空' : '🌸 達成の庭';
