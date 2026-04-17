@@ -52,10 +52,13 @@
       margin-top: 20px;
       box-shadow: 0 2px 8px rgba(0,0,0,.07);
       display: flex;
-      align-items: center;
-      gap: 12px;
-      flex-wrap: wrap;
+      flex-direction: column;
+      gap: 8px;
     }
+    .age-card-row1 { display: flex; align-items: center; gap: 8px; }
+    .age-card-row1 label { font-size: .9rem; color: #555; }
+    .age-card-row2 { display: flex; align-items: center; gap: 4px; flex-wrap: nowrap; }
+    .age-card-hint { font-size: .78rem; color: #aaa; }
     .age-card > label { font-size: .9rem; color: #555; }
     .age-input {
       width: 72px;
@@ -474,18 +477,77 @@
       .badges-grid { grid-template-columns: repeat(3, 1fr); }
       .modal { padding: 24px 20px 20px; min-width: 260px; }
     }
+
+    /* ── Mode Selector ── */
+    .mode-selector {
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+      padding: 12px 20px 10px;
+      background: #f0f4ec;
+      flex-wrap: wrap;
+    }
+    .mode-option {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 24px;
+      border-radius: 24px;
+      border: 2px solid #d4e6c8;
+      cursor: pointer;
+      font-size: .9rem;
+      font-weight: 600;
+      color: #888;
+      transition: all .2s;
+      background: #fff;
+      user-select: none;
+    }
+    .mode-option.active {
+      border-color: #4a8c51;
+      background: #e8f5e2;
+      color: #2e5d34;
+    }
+
+    /* ── Night Sky Garden ── */
+    .garden-wrap.night .garden-sky {
+      background: linear-gradient(180deg, #0d1b2a 0%, #162c44 100%);
+      min-height: 100px;
+    }
+    .garden-wrap.night .garden-sky-label { color: #7aaed4; }
+    .garden-wrap.night .garden-ground {
+      background: linear-gradient(180deg, #162c44 0%, #0d1b2a 100%);
+      color: #7aaed4;
+    }
+    .garden-wrap.night .garden-empty { color: #7aaed4; }
+
+    /* ── ToDo List ── */
+    .todo-section-title {
+      font-size: 1.05rem;
+      font-weight: 700;
+      color: #2e5d34;
+      margin: 26px 0 12px;
+      display: flex;
+      align-items: center;
+      gap: 7px;
+    }
   </style>
 </head>
 <body>
 
 <header>
-  <h1>🌱 タイムバケット</h1>
+  <h1 id="appTitle">🌱 タイムバケット</h1>
 </header>
+
+<!-- Mode Selector -->
+<div class="mode-selector">
+  <div class="mode-option active" id="modeOptTB" onclick="switchMode('tb')">🪣 タイムバケット</div>
+  <div class="mode-option" id="modeOptTodo" onclick="switchMode('todo')">✅ ToDoリスト</div>
+</div>
 
 <div class="stats-bar">
   <div>
     <div class="stat-value" id="statTotal">0</div>
-    <div class="stat-label">やりたいこと</div>
+    <div class="stat-label" id="statLabelTotal">やりたいこと</div>
   </div>
   <div>
     <div class="stat-value" id="statDone">0</div>
@@ -500,26 +562,26 @@
 <div class="page">
 
   <!-- Age input -->
-  <div class="age-card">
-    <span>🎂</span>
-    <div class="birthday-block">
+  <div class="age-card" id="ageCard">
+    <div class="age-card-row1">
+      <span>🎂</span>
       <label>生年月日</label>
-      <div class="birthday-row">
-        <input type="number" id="bdYear"  class="birthday-input bd-year"  placeholder="1980" min="1900" max="2100">
-        <span class="birthday-sep">/</span>
-        <input type="number" id="bdMonth" class="birthday-input bd-month" placeholder="1"    min="1"    max="12">
-        <span class="birthday-sep">/</span>
-        <input type="number" id="bdDay"   class="birthday-input bd-day"   placeholder="1"    min="1"    max="31">
-        <span class="age-display" id="ageDisplay">--</span>
-        <span>歳</span>
-      </div>
-      <span class="age-hint">（誕生日に自動で年齢が更新されます）</span>
     </div>
+    <div class="age-card-row2">
+      <input type="number" id="bdYear"  class="birthday-input bd-year"  placeholder="1980" min="1900" max="2100">
+      <span class="birthday-sep">/</span>
+      <input type="number" id="bdMonth" class="birthday-input bd-month" placeholder="1"    min="1"    max="12">
+      <span class="birthday-sep">/</span>
+      <input type="number" id="bdDay"   class="birthday-input bd-day"   placeholder="1"    min="1"    max="31">
+      <span class="age-display" id="ageDisplay">--</span>
+      <span>歳</span>
+    </div>
+    <div class="age-card-hint">（誕生日に自動で年齢が更新されます）</div>
   </div>
 
   <!-- Garden -->
-  <div class="sec-title">🌸 達成の庭</div>
-  <div class="garden-wrap">
+  <div class="sec-title" id="gardenTitle">🌸 達成の庭</div>
+  <div class="garden-wrap" id="gardenWrap">
     <div class="garden-sky">
       <div class="garden-sky-label" id="gardenLabel">達成数：0個</div>
       <div class="flowers-row" id="flowersRow">
@@ -537,19 +599,33 @@
   </button>
   <div class="badges-grid" id="badgesGrid" style="display:none"></div>
 
-  <!-- Buckets -->
-  <div class="sec-title">🧺 タイムバケット</div>
-  <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;">
-    <button class="past-toggle-btn" id="pastToggleBtn" onclick="togglePast()" style="margin-bottom:0;">
-      <span class="toggle-switch" id="pastToggleSwitch"></span>
-      <span id="pastToggleLabel">過去のバケツを表示</span>
-    </button>
-    <button class="past-toggle-btn" id="overdueToggleBtn" onclick="toggleOverdue()" style="margin-bottom:0;color:#c0392b;border-color:#f5c6c6;">
-      <span class="toggle-switch" id="overdueToggleSwitch"></span>
-      <span id="overdueToggleLabel">未完了のみ表示</span>
-    </button>
+  <!-- Buckets Section (タイムバケットモードのみ) -->
+  <div id="bucketsSection">
+    <div class="sec-title">🧺 タイムバケット</div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;">
+      <button class="past-toggle-btn" id="pastToggleBtn" onclick="togglePast()" style="margin-bottom:0;">
+        <span class="toggle-switch" id="pastToggleSwitch"></span>
+        <span id="pastToggleLabel">過去のバケツを表示</span>
+      </button>
+      <button class="past-toggle-btn" id="overdueToggleBtn" onclick="toggleOverdue()" style="margin-bottom:0;color:#c0392b;border-color:#f5c6c6;">
+        <span class="toggle-switch" id="overdueToggleSwitch"></span>
+        <span id="overdueToggleLabel">未完了のみ表示</span>
+      </button>
+    </div>
+    <div id="bucketsContainer"></div>
   </div>
-  <div id="bucketsContainer"></div>
+
+  <!-- ToDo Section (ToDoリストモードのみ) -->
+  <div id="todoSection" style="display:none">
+    <div class="sec-title">✅ やることリスト</div>
+    <div class="add-form" style="margin-bottom:14px;">
+      <input type="text" class="add-input" id="todoInput"
+        placeholder="やることを入力…"
+        onkeydown="if(event.key==='Enter'&&!event.isComposing)addTodoItem()">
+      <button class="add-btn" onclick="addTodoItem()">追加</button>
+    </div>
+    <ul class="item-list" id="todoList"></ul>
+  </div>
 
 </div>
 
@@ -610,7 +686,32 @@ const BADGES = [
   { id:'p100',need:100, icon:'🎖️', name:'伝説の勲章',        premium:true  },
 ];
 
-const FLOWERS = ['🌸','🌺','🌹','🌷','🌼','🌻','🪷','🪻','💐','🌝','🌞','✨'];
+const FLOWERS = ['🌸','🌺','🌹','🌷','🌼','🌻','🪷','🪻','💐','🦋','🐝','🐞'];
+
+const STARS = ['⭐','🌟','💫','✨','🌠','🌙','🌛','🌜','🌚','🌌','🪐','🔭'];
+
+const TODO_BADGES = [
+  { id:'t5',   need:5,   icon:'🌙',   name:'三日月',        premium:false },
+  { id:'t10',  need:10,  icon:'⭐',   name:'一番星',        premium:true  },
+  { id:'t15',  need:15,  icon:'🌟',   name:'輝く星',        premium:false },
+  { id:'t20',  need:20,  icon:'🔭',   name:'望遠鏡',        premium:true  },
+  { id:'t25',  need:25,  icon:'🦉',   name:'夜のふくろう',  premium:false },
+  { id:'t30',  need:30,  icon:'🪐',   name:'土星',          premium:true  },
+  { id:'t35',  need:35,  icon:'🌌',   name:'銀河',          premium:false },
+  { id:'t40',  need:40,  icon:'🛸',   name:'UFO',           premium:true  },
+  { id:'t45',  need:45,  icon:'☄️',   name:'すい星',        premium:false },
+  { id:'t50',  need:50,  icon:'🚀',   name:'ロケット',      premium:true  },
+  { id:'t55',  need:55,  icon:'🧑‍🚀', name:'宇宙飛行士',   premium:false },
+  { id:'t60',  need:60,  icon:'🌍',   name:'青い地球',      premium:true  },
+  { id:'t65',  need:65,  icon:'🦇',   name:'夜の使者',      premium:false },
+  { id:'t70',  need:70,  icon:'🌠',   name:'流れ星',        premium:true  },
+  { id:'t75',  need:75,  icon:'🌑🌕', name:'月の満ち欠け',  premium:false },
+  { id:'t80',  need:80,  icon:'💫',   name:'宇宙の輝き',    premium:true  },
+  { id:'t85',  need:85,  icon:'🌃',   name:'夜景',          premium:false },
+  { id:'t90',  need:90,  icon:'🎆',   name:'夜空の花火',    premium:true  },
+  { id:'t95',  need:95,  icon:'🌌✨', name:'星雲',          premium:true  },
+  { id:'t100', need:100, icon:'🏆',   name:'宇宙の伝説',    premium:true  },
+];
 
 const MESSAGES = [
   '一歩一歩、確実に夢に近づいています。',
@@ -620,6 +721,16 @@ const MESSAGES = [
   '次の挑戦も楽しみですね！',
   'その一歩が、やがて大きな庭になります。',
   '素晴らしい！時間は有限だから、こういう積み重ねが尊い。',
+];
+
+const TODO_MESSAGES = [
+  '一つずつ、着実に前進しています。',
+  '星がまた一つ輝きました！',
+  'やり切った充実感、最高ですね。',
+  '次の挑戦も楽しみに待っています。',
+  '小さな積み重ねが、やがて星座になります。',
+  '素晴らしい！あなたの努力が夜空を彩ります。',
+  '達成の喜びは、あなただけのもの。',
 ];
 
 // ── State (in-memory primary, localStorage backup) ─────────
@@ -637,6 +748,23 @@ function save() {
 }
 
 function getState() { return STATE; }
+
+// ── ToDo State ─────────────────────────────────────────────
+let TODO_STATE = { items: [], unlockedBadges: [], showBadges: false };
+
+(function initTodoState() {
+  try {
+    const raw = localStorage.getItem('todo_v1');
+    if (raw) TODO_STATE = Object.assign(TODO_STATE, JSON.parse(raw));
+  } catch(e) {}
+})();
+
+function saveTodo() {
+  try { localStorage.setItem('todo_v1', JSON.stringify(TODO_STATE)); } catch(e) {}
+}
+
+// ── Mode ───────────────────────────────────────────────────
+let currentMode = localStorage.getItem('tb_mode') || 'tb';
 
 // ── Helpers ────────────────────────────────────────────────
 function calcAge(birthday) {
@@ -690,50 +818,73 @@ function esc(t) {
 
 // ── Render ─────────────────────────────────────────────────
 function renderAll() {
-  const state = getState();
-  const { total, done } = countAll(state);
-
-  // Stats
-  document.getElementById('statTotal').textContent = total;
-  document.getElementById('statDone').textContent  = done;
-  document.getElementById('statRate').textContent  = total ? Math.round(done/total*100)+'%' : '0%';
-
-  renderGarden(done);
-  renderBadges(done);
-  renderBuckets(state);
+  const isTodo = currentMode === 'todo';
+  if (isTodo) {
+    const total = TODO_STATE.items.length;
+    const done  = TODO_STATE.items.filter(i => i.done).length;
+    document.getElementById('statTotal').textContent = total;
+    document.getElementById('statDone').textContent  = done;
+    document.getElementById('statRate').textContent  = total ? Math.round(done/total*100)+'%' : '0%';
+    renderGarden(done);
+    renderBadges(done);
+    renderTodoList();
+  } else {
+    const state = getState();
+    const { total, done } = countAll(state);
+    document.getElementById('statTotal').textContent = total;
+    document.getElementById('statDone').textContent  = done;
+    document.getElementById('statRate').textContent  = total ? Math.round(done/total*100)+'%' : '0%';
+    renderGarden(done);
+    renderBadges(done);
+    renderBuckets(state);
+  }
 }
 
 function renderGarden(done) {
+  const isTodo  = currentMode === 'todo';
+  const symbols = isTodo ? STARS : FLOWERS;
   document.getElementById('gardenLabel').textContent = `達成数：${done}個`;
   const row = document.getElementById('flowersRow');
   if (done === 0) {
-    row.innerHTML = '<div class="garden-empty">やりたいことを達成すると、ここに花が咲きます 🌱</div>';
+    row.innerHTML = isTodo
+      ? '<div class="garden-empty">やることを達成すると、ここに星が輝きます ✨</div>'
+      : '<div class="garden-empty">やりたいことを達成すると、ここに花が咲きます 🌱</div>';
     return;
   }
   const show = Math.min(done, 100);
-  // サイズのバリエーション（小・中・大をランダムに）
   const sizes = ['1.1rem','1.4rem','1.7rem','2.0rem','2.3rem'];
-  // シードを固定して毎回同じランダム配置にする
   function seededRand(seed) { return ((Math.sin(seed) * 9301 + 49297) % 233280) / 233280; }
   let html = '';
   for (let i = 0; i < show; i++) {
-    const f    = FLOWERS[i % FLOWERS.length];
+    const f    = symbols[i % symbols.length];
     const size = sizes[Math.floor(seededRand(i * 7 + 3) * sizes.length)];
     html += `<span class="flower-item" style="font-size:${size};animation-delay:${(i*0.03).toFixed(2)}s" title="${i+1}個目の達成">${f}</span>`;
   }
   if (done > 100) html += `<span style="font-size:.85rem;background:rgba(0,0,0,.22);color:#fff;padding:4px 10px;border-radius:10px;align-self:center">+${done-100}</span>`;
   row.innerHTML = html;
-  document.getElementById('gardenGround').textContent =
-    done >= 50 ? '百花繚乱の庭。あなたの人生、最高です！' :
-    done >= 20 ? '花盛りの庭。着実に夢を叶えていますね。' :
-    done >= 10 ? '庭が賑やかになってきました。' :
-    done >= 5  ? '小さな庭が育ちつつあります。' :
-                 '大地に根を張り、空へと花ひらく';
+  if (isTodo) {
+    document.getElementById('gardenGround').textContent =
+      done >= 50 ? '満天の星空。あなたの達成が夜空を彩る！' :
+      done >= 20 ? '夜空が輝きだしています。すばらしい！' :
+      done >= 10 ? '星座が少しずつ見えてきました。' :
+      done >= 5  ? '小さな星たちが輝き始めています。' :
+                   '夜空に星がひとつ、またひとつ…';
+  } else {
+    document.getElementById('gardenGround').textContent =
+      done >= 50 ? '百花繚乱の庭。あなたの人生、最高です！' :
+      done >= 20 ? '花盛りの庭。着実に夢を叶えていますね。' :
+      done >= 10 ? '庭が賑やかになってきました。' :
+      done >= 5  ? '小さな庭が育ちつつあります。' :
+                   '大地に根を張り、空へと花ひらく';
+  }
 }
 
 function renderBadges(done) {
-  const unlocked = new Set(STATE.unlockedBadges || []);
-  document.getElementById('badgesGrid').innerHTML = BADGES.map(b => {
+  const isTodo   = currentMode === 'todo';
+  const badges   = isTodo ? TODO_BADGES : BADGES;
+  const st       = isTodo ? TODO_STATE : STATE;
+  const unlocked = new Set(st.unlockedBadges || []);
+  document.getElementById('badgesGrid').innerHTML = badges.map(b => {
     const on = unlocked.has(b.id);
     if (on) {
       const cls = b.premium ? 'premium' : 'unlocked';
@@ -869,10 +1020,12 @@ function toggleItem(bid, idx) {
 }
 
 function toggleBadges() {
-  STATE.showBadges = !STATE.showBadges;
-  save();
-  const show = STATE.showBadges;
-  document.getElementById('badgesGrid').style.display   = show ? 'grid' : 'none';
+  const isTodo = currentMode === 'todo';
+  const st = isTodo ? TODO_STATE : STATE;
+  st.showBadges = !st.showBadges;
+  if (isTodo) saveTodo(); else save();
+  const show = st.showBadges;
+  document.getElementById('badgesGrid').style.display    = show ? 'grid' : 'none';
   document.getElementById('badgeToggleSwitch').className = 'toggle-switch' + (show ? ' on' : '');
   document.getElementById('badgeToggleLabel').textContent = show ? 'バッジを隠す' : 'バッジを表示';
 }
@@ -915,6 +1068,20 @@ function checkBadge(done) {
   return newBadge;
 }
 
+function checkTodoBadge(done) {
+  if (!TODO_STATE.unlockedBadges) TODO_STATE.unlockedBadges = [];
+  const prev = new Set(TODO_STATE.unlockedBadges);
+  let newBadge = null;
+  for (const b of TODO_BADGES) {
+    if (done >= b.need && !prev.has(b.id)) {
+      TODO_STATE.unlockedBadges.push(b.id);
+      newBadge = b;
+    }
+  }
+  saveTodo();
+  return newBadge;
+}
+
 // ── Sound ──────────────────────────────────────────────────
 function playSuccessSound(type) {
   try {
@@ -944,15 +1111,17 @@ function playSuccessSound(type) {
 }
 
 // ── Celebration ────────────────────────────────────────────
-function showCelebration(badge) {
+function showCelebration(badge, isTodo) {
+  const symbols = (isTodo || currentMode === 'todo') ? STARS : FLOWERS;
+  const msgs    = (isTodo || currentMode === 'todo') ? TODO_MESSAGES : MESSAGES;
   if (badge) {
     document.getElementById('modalIcon').textContent  = badge.icon;
     document.getElementById('modalTitle').textContent = badge.premium ? `✨ プレミアムバッジ獲得！` : `🎁 バッジ獲得！`;
-    document.getElementById('modalMsg').textContent   = `「${badge.name}」が解除されました！\n${badge.need}個達成のお祝いです🎉\n\n${MESSAGES[Math.floor(Math.random()*MESSAGES.length)]}`;
+    document.getElementById('modalMsg').textContent   = `「${badge.name}」が解除されました！\n${badge.need}個達成のお祝いです🎉\n\n${msgs[Math.floor(Math.random()*msgs.length)]}`;
   } else {
-    document.getElementById('modalIcon').textContent  = FLOWERS[Math.floor(Math.random()*FLOWERS.length)];
+    document.getElementById('modalIcon').textContent  = symbols[Math.floor(Math.random()*symbols.length)];
     document.getElementById('modalTitle').textContent = '達成おめでとう！';
-    document.getElementById('modalMsg').textContent   = MESSAGES[Math.floor(Math.random()*MESSAGES.length)];
+    document.getElementById('modalMsg').textContent   = msgs[Math.floor(Math.random()*msgs.length)];
   }
   document.getElementById('overlay').style.display = 'block';
   document.getElementById('modal').style.display   = 'block';
@@ -983,6 +1152,86 @@ function spawnConfetti() {
     document.body.appendChild(el);
     el.addEventListener('animationend', () => el.remove());
   }
+}
+
+// ── ToDo Mode ──────────────────────────────────────────────
+function addTodoItem() {
+  const inp = document.getElementById('todoInput');
+  if (!inp) return;
+  const text = inp.value.trim();
+  if (!text) return;
+  TODO_STATE.items.push({ text, done: false });
+  saveTodo();
+  inp.value = '';
+  renderAll();
+  document.getElementById('todoInput').focus();
+}
+
+function deleteTodoItem(idx) {
+  TODO_STATE.items.splice(idx, 1);
+  saveTodo();
+  renderAll();
+}
+
+function toggleTodoItem(idx) {
+  const item = TODO_STATE.items[idx];
+  item.done  = !item.done;
+  saveTodo();
+  if (item.done) {
+    const done = TODO_STATE.items.filter(i => i.done).length;
+    const newBadge = checkTodoBadge(done);
+    showCelebration(newBadge, true);
+  }
+  renderAll();
+}
+
+function renderTodoList() {
+  const list = document.getElementById('todoList');
+  if (!list) return;
+  if (TODO_STATE.items.length === 0) {
+    list.innerHTML = '<li><div class="empty-note">まだ何もありません。追加してみましょう！</div></li>';
+    return;
+  }
+  list.innerHTML = TODO_STATE.items.map((it, idx) => `
+    <li class="item-row">
+      <input type="checkbox" class="item-cb" ${it.done ? 'checked' : ''}
+        onchange="toggleTodoItem(${idx})">
+      <span class="item-num ${it.done ? 'done' : ''}">${idx + 1}.</span>
+      <span class="item-text ${it.done ? 'done' : ''}">${esc(it.text)}</span>
+      <button class="item-del" onclick="deleteTodoItem(${idx})" title="削除">×</button>
+    </li>`).join('');
+}
+
+// ── Mode Switching ─────────────────────────────────────────
+function switchMode(mode) {
+  currentMode = mode;
+  localStorage.setItem('tb_mode', mode);
+  applyMode();
+  renderAll();
+}
+
+function applyMode() {
+  const isTodo = currentMode === 'todo';
+  // モードボタン
+  document.getElementById('modeOptTB').classList.toggle('active', !isTodo);
+  document.getElementById('modeOptTodo').classList.toggle('active', isTodo);
+  // ヘッダー
+  document.getElementById('appTitle').textContent = isTodo ? '✅ ToDoリスト' : '🌱 タイムバケット';
+  // Stats label
+  document.getElementById('statLabelTotal').textContent = isTodo ? 'やること' : 'やりたいこと';
+  // セクション表示切替
+  document.getElementById('ageCard').style.display       = isTodo ? 'none' : '';
+  document.getElementById('bucketsSection').style.display = isTodo ? 'none' : '';
+  document.getElementById('todoSection').style.display   = isTodo ? '' : 'none';
+  // ガーデン
+  document.getElementById('gardenWrap').className = 'garden-wrap' + (isTodo ? ' night' : '');
+  document.getElementById('gardenTitle').textContent = isTodo ? '🌙 達成の夜空' : '🌸 達成の庭';
+  // バッジ表示状態を復元
+  const st = isTodo ? TODO_STATE : STATE;
+  const showBadges = st.showBadges || false;
+  document.getElementById('badgesGrid').style.display    = showBadges ? 'grid' : 'none';
+  document.getElementById('badgeToggleSwitch').className = 'toggle-switch' + (showBadges ? ' on' : '');
+  document.getElementById('badgeToggleLabel').textContent = showBadges ? 'バッジを隠す' : 'バッジを表示';
 }
 
 // ── Birthday modal ─────────────────────────────────────────
@@ -1090,12 +1339,7 @@ window.addEventListener('DOMContentLoaded', () => {
     const age = calcAge(STATE.birthday);
     document.getElementById('ageDisplay').textContent = age !== null ? age : '--';
   }
-  // バッジ表示状態を復元
-  const showBadges = STATE.showBadges || false;
-  document.getElementById('badgesGrid').style.display    = showBadges ? 'grid' : 'none';
-  document.getElementById('badgeToggleSwitch').className = 'toggle-switch' + (showBadges ? ' on' : '');
-  document.getElementById('badgeToggleLabel').textContent = showBadges ? 'バッジを隠す' : 'バッジを表示';
-
+  applyMode();
   renderAll();
   checkBirthdayUpdate();
 });
