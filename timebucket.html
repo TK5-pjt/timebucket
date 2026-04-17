@@ -1227,7 +1227,7 @@ function addTodoItem() {
 
 function deleteTodoItem(idx) {
   TODO_STATE.items.splice(idx, 1);
-  saveTodo();
+  syncTodoBadges(); // 削除後に達成数が減るのでバッジを再計算
   renderAll();
 }
 
@@ -1240,13 +1240,26 @@ function toggleTodoItem(idx) {
   // バッジ解除を先に行ってからrenderAll → グリッドに即反映
   let newBadge = null;
   if (!wasDone && item.done) {
+    // 新たに完了 → バッジチェック
     const done = TODO_STATE.items.filter(i => i.done).length;
     newBadge = checkTodoBadge(done);
+  } else if (wasDone && !item.done) {
+    // チェックを外した → バッジ再計算
+    syncTodoBadges();
   }
   renderAll();
   if (!wasDone && item.done) {
     showCelebration(newBadge, true);
   }
+}
+
+function syncTodoBadges() {
+  // 現在の完了数に基づいてバッジを再計算（削除・チェック解除時に使用）
+  const done = TODO_STATE.items.filter(i => i.done).length;
+  TODO_STATE.unlockedBadges = TODO_BADGES
+    .filter(b => done >= b.need)
+    .map(b => b.id);
+  saveTodo();
 }
 
 function getSortedTodoItems() {
