@@ -630,10 +630,16 @@
         onkeydown="if(event.key==='Enter'&&!event.isComposing)addTodoItem()">
       <button class="add-btn" onclick="addTodoItem()">追加</button>
     </div>
-    <button class="past-toggle-btn" id="undoneToggleBtn" onclick="toggleUndoneTodo()" style="margin-bottom:14px;">
-      <span class="toggle-switch" id="undoneToggleSwitch"></span>
-      <span id="undoneToggleLabel">未完了のみ表示</span>
-    </button>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;">
+      <button class="past-toggle-btn" id="undoneToggleBtn" onclick="toggleUndoneTodo()" style="margin-bottom:0;">
+        <span class="toggle-switch" id="undoneToggleSwitch"></span>
+        <span id="undoneToggleLabel">未完了のみ表示</span>
+      </button>
+      <button class="past-toggle-btn" id="sortToggleBtn" onclick="toggleSortByDeadline()" style="margin-bottom:0;">
+        <span class="toggle-switch" id="sortToggleSwitch"></span>
+        <span id="sortToggleLabel">期限順に並べる</span>
+      </button>
+    </div>
     <ul class="item-list" id="todoList"></ul>
   </div>
 
@@ -1185,31 +1191,39 @@ function deleteTodoItem(idx) {
 }
 
 function toggleTodoItem(idx) {
-  const item = TODO_STATE.items[idx];
-  item.done  = !item.done;
+  const item    = TODO_STATE.items[idx];
+  const wasDone = item.done;
+  item.done     = !item.done;
   saveTodo();
-  if (item.done) {
-    const done = TODO_STATE.items.filter(i => i.done).length;
+  renderAll(); // 先にDOMを更新
+  if (!wasDone && item.done) {
+    const done     = TODO_STATE.items.filter(i => i.done).length;
     const newBadge = checkTodoBadge(done);
     showCelebration(newBadge, true);
   }
-  renderAll();
 }
 
 function getSortedTodoItems() {
-  // 未完了・期限あり → 期限近い順、未完了・期限なし → 追加順、完了済み → 末尾
-  return TODO_STATE.items
-    .map((it, idx) => ({ it, idx }))
-    .sort((a, b) => {
+  const byDeadline = TODO_STATE.sortByDeadline || false;
+  const mapped = TODO_STATE.items.map((it, idx) => ({ it, idx }));
+  if (!byDeadline) {
+    // 期限ソートなし：完了済みを末尾、それ以外は追加順
+    return mapped.sort((a, b) => {
       if (a.it.done !== b.it.done) return a.it.done ? 1 : -1;
-      if (!a.it.done && !b.it.done) {
-        const aD = a.it.deadline, bD = b.it.deadline;
-        if (aD && bD) return aD.localeCompare(bD);
-        if (aD) return -1;
-        if (bD) return 1;
-      }
       return a.idx - b.idx;
     });
+  }
+  // 期限ソートあり：期限あり→近い順、期限なし→追加順、完了済み→末尾
+  return mapped.sort((a, b) => {
+    if (a.it.done !== b.it.done) return a.it.done ? 1 : -1;
+    if (!a.it.done && !b.it.done) {
+      const aD = a.it.deadline, bD = b.it.deadline;
+      if (aD && bD) return aD.localeCompare(bD);
+      if (aD) return -1;
+      if (bD) return 1;
+    }
+    return a.idx - b.idx;
+  });
 }
 
 function setTodoDeadline(idx, val) {
@@ -1222,21 +1236,29 @@ function toggleUndoneTodo() {
   TODO_STATE.showUndone = !TODO_STATE.showUndone;
   saveTodo();
   renderTodoList();
-  const on = TODO_STATE.showUndone;
-  document.getElementById('undoneToggleSwitch').className = 'toggle-switch' + (on ? ' on' : '');
-  document.getElementById('undoneToggleLabel').textContent = on ? '未完了のみ表示中' : '未完了のみ表示';
+}
+
+function toggleSortByDeadline() {
+  TODO_STATE.sortByDeadline = !TODO_STATE.sortByDeadline;
+  saveTodo();
+  renderTodoList();
 }
 
 function renderTodoList() {
   const list = document.getElementById('todoList');
   if (!list) return;
 
-  // undone toggle UI を同期
-  const on = TODO_STATE.showUndone || false;
-  const sw = document.getElementById('undoneToggleSwitch');
-  const lb = document.getElementById('undoneToggleLabel');
-  if (sw) sw.className = 'toggle-switch' + (on ? ' on' : '');
-  if (lb) lb.textContent = on ? '未完了のみ表示中' : '未完了のみ表示';
+  // トグルUI を同期
+  const on   = TODO_STATE.showUndone    || false;
+  const sort = TODO_STATE.sortByDeadline || false;
+  const sw   = document.getElementById('undoneToggleSwitch');
+  const lb   = document.getElementById('undoneToggleLabel');
+  const ssw  = document.getElementById('sortToggleSwitch');
+  const slb  = document.getElementById('sortToggleLabel');
+  if (sw)  sw.className  = 'toggle-switch' + (on   ? ' on' : '');
+  if (lb)  lb.textContent = on   ? '未完了のみ表示中' : '未完了のみ表示';
+  if (ssw) ssw.className = 'toggle-switch' + (sort ? ' on' : '');
+  if (slb) slb.textContent = sort ? '期限順（オン）' : '期限順に並べる';
 
   if (TODO_STATE.items.length === 0) {
     list.innerHTML = '<li><div class="empty-note">まだ何もありません。追加してみましょう！</div></li>';
@@ -1299,13 +1321,18 @@ function applyMode() {
   document.getElementById('badgesGrid').style.display    = showBadges ? 'grid' : 'none';
   document.getElementById('badgeToggleSwitch').className = 'toggle-switch' + (showBadges ? ' on' : '');
   document.getElementById('badgeToggleLabel').textContent = showBadges ? 'バッジを隠す' : 'バッジを表示';
-  // 未完了トグル復元
+  // ToDoトグル復元
   if (isTodo) {
-    const undoneOn = TODO_STATE.showUndone || false;
-    const sw = document.getElementById('undoneToggleSwitch');
-    const lb = document.getElementById('undoneToggleLabel');
-    if (sw) sw.className = 'toggle-switch' + (undoneOn ? ' on' : '');
-    if (lb) lb.textContent = undoneOn ? '未完了のみ表示中' : '未完了のみ表示';
+    const undoneOn = TODO_STATE.showUndone    || false;
+    const sortOn   = TODO_STATE.sortByDeadline || false;
+    const sw  = document.getElementById('undoneToggleSwitch');
+    const lb  = document.getElementById('undoneToggleLabel');
+    const ssw = document.getElementById('sortToggleSwitch');
+    const slb = document.getElementById('sortToggleLabel');
+    if (sw)  sw.className  = 'toggle-switch' + (undoneOn ? ' on' : '');
+    if (lb)  lb.textContent = undoneOn ? '未完了のみ表示中' : '未完了のみ表示';
+    if (ssw) ssw.className = 'toggle-switch' + (sortOn   ? ' on' : '');
+    if (slb) slb.textContent = sortOn ? '期限順（オン）' : '期限順に並べる';
   }
 }
 
