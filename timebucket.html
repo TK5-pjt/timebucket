@@ -482,6 +482,7 @@
     .mode-selector {
       display: flex;
       justify-content: center;
+      align-items: stretch;
       gap: 10px;
       padding: 12px 20px 10px;
       background: #f0f4ec;
@@ -491,9 +492,9 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: 8px;
-      padding: 8px 24px;
-      border-radius: 24px;
+      gap: 6px;
+      padding: 8px 16px;
+      border-radius: 18px;
       border: 2px solid #d4e6c8;
       cursor: pointer;
       font-size: .9rem;
@@ -504,7 +505,9 @@
       user-select: none;
       flex: 1;
       max-width: 220px;
-      min-width: 140px;
+      min-width: 120px;
+      text-align: center;
+      line-height: 1.4;
     }
     .mode-option.active {
       border-color: #4a8c51;
@@ -585,7 +588,7 @@
 
 <!-- Mode Selector -->
 <div class="mode-selector">
-  <div class="mode-option active" id="modeOptTB" onclick="switchMode('tb')">🪣 タイム<wbr>バケット</div>
+  <div class="mode-option active" id="modeOptTB" onclick="switchMode('tb')">🪣 タイム<br>バケット</div>
   <div class="mode-option" id="modeOptTodo" onclick="switchMode('todo')">✅ ToDoリスト</div>
 </div>
 
